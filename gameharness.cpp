@@ -62,12 +62,6 @@ void GameHarness::Run()
                 // Small delay before level starts
                 _state = OnWaitingToStartLevel();
                 break;
-            case GameState::PlayerWarpingOut:
-                _state = OnPlayerWarpingOut();
-                break;
-            case GameState::PlayerWarpingIn:
-                _state = OnPlayerWarpingIn();
-                break;
             case GameState::Running:
                 // Normal gameplay
                 _state = OnRunning();
@@ -111,7 +105,8 @@ void GameHarness::Cleanup()
     SafeDelete<TextureWrapper>(_pTilesTexture);
     SafeDelete<TextureWrapper>(_pSpriteTexture);
     SafeDelete<Maze>(_pMaze);
-    SafeDelete<Sprite>(_pPlayerSprite);
+    SafeDelete<Player>(_pPlayer);
+    SafeDelete<Blinky>(_pBlinky);
 
     SDL_DestroyRenderer(_pSDLRenderer);
     _pSDLRenderer = nullptr;
@@ -127,69 +122,46 @@ void GameHarness::Cleanup()
 void GameHarness::InitializeSprites()
 {
     SDL_assert(_fInitialized);
-    // Only need to do this once
-    if (_pPlayerSprite == nullptr)
+    
+    if (_pPlayer == nullptr)
     {
-        // Declare and initialize sprite object(s)
-        _pPlayerSprite = new Sprite(_pSpriteTexture, Constants::PlayerSpriteWidth, Constants::PlayerSpriteHeight,
-            Constants::PlayerTotalFrameCount, Constants::PlayerTotalAnimationCount);
-
-        _pPlayerSprite->LoadFrames(0, 0, 0, 10);
-        _pPlayerSprite->LoadFrames(10, 0, Constants::PlayerSpriteHeight, 10);
-        _pPlayerSprite->LoadAnimationSequence(Constants::AnimationIndexLeft, AnimationType::Loop, Constants::PlayerAnimation_LEFT, Constants::PlayerAnimationFrameCount, Constants::PlayerAnimationSpeed);
-        _pPlayerSprite->LoadAnimationSequence(Constants::AnimationIndexRight, AnimationType::Loop, Constants::PlayerAnimation_RIGHT, Constants::PlayerAnimationFrameCount, Constants::PlayerAnimationSpeed);
-        _pPlayerSprite->LoadAnimationSequence(Constants::AnimationIndexUp, AnimationType::Loop, Constants::PlayerAnimation_UP, Constants::PlayerAnimationFrameCount, Constants::PlayerAnimationSpeed);
-        _pPlayerSprite->LoadAnimationSequence(Constants::AnimationIndexDown, AnimationType::Loop, Constants::PlayerAnimation_DOWN, Constants::PlayerAnimationFrameCount, Constants::PlayerAnimationSpeed);
-        _pPlayerSprite->LoadAnimationSequence(Constants::AnimationIndexDeath, AnimationType::Once, Constants::PlayerAnimation_DEATH, Constants::PlayerAnimationDeathFrameCount, Constants::PlayerAnimationSpeed);
-        _pPlayerSprite->SetFrameOffset(1 - (Constants::PlayerSpriteWidth / 2), 1 - (Constants::PlayerSpriteHeight / 2));
+        _pPlayer = new Player(_pSpriteTexture);
+        _pPlayer->Initialize();
     }
+    _pPlayer->Reset(_pMaze);
 
-    // Do this every time
-    _pPlayerSprite->SetAnimation(Constants::AnimationIndexLeft);
-    SDL_Point playerStartCoord = _pMaze->GetTileCoordinates(Constants::PlayerStartRow, Constants::PlayerStartCol);
-    _pPlayerSprite->ResetPosition(playerStartCoord.x, playerStartCoord.y);
-    _pPlayerSprite->SetVelocity(-1.5, 0);
+    if (_pBlinky == nullptr)
+    {
+        _pBlinky = new Blinky(_pSpriteTexture);
+        _pBlinky->Initialize();
+    }
+    _pBlinky->Reset(_pMaze);
 }
 
-// Handle any keyboard input.  The basic logic here is
-// 1)  If a directional key is pressed
-// 2)  Check the cell adjacent based on direction
-// 3)  If the new direction is open, place the sprite along the centerline and
-//     set its new velocity
-// 4)  If ESC is hit, signal quit
-//
-// pInputSprite is the temporary graphical helper which will go away - it shows directions pressed
-bool GameHarness::ProcessInput()
+// Record key presses we care about
+bool GameHarness::ProcessInput(Direction *pInputDirection)
 {
+    *pInputDirection = Direction::None;
     bool fResult = false;
 
     // All it takes to get the key states.  The array is valid within SDL while running
     const Uint8 *pCurrentKeyState = SDL_GetKeyboardState(nullptr);
 
-    // Get the player's info before any input is taken
-    SDL_Point playerPreInputPoint = { static_cast<int>(_pPlayerSprite->X()), static_cast<int>(_pPlayerSprite->Y()) };
-    Uint16 playerPreInputRow = 0;
-    Uint16 playerPreInputCol = 0;
-    _pMaze->GetTileRowCol(playerPreInputPoint, playerPreInputRow, playerPreInputCol);
-
-     // LOGIC
-    // Check if a direction key is down (or WASD) and then process it with our helper
-    // which will handle collision, etc
     if (pCurrentKeyState[SDL_SCANCODE_UP] || pCurrentKeyState[SDL_SCANCODE_W])
     {
-        DoPlayerInputCheck(Direction::Up, playerPreInputRow, playerPreInputCol, Constants::AnimationIndexUp, 0, -1.5);
+        *pInputDirection = Direction::Up;
     }
     else if (pCurrentKeyState[SDL_SCANCODE_DOWN] || pCurrentKeyState[SDL_SCANCODE_S])
     {
-        DoPlayerInputCheck(Direction::Down, playerPreInputRow, playerPreInputCol, Constants::AnimationIndexDown, 0, 1.5);
+        *pInputDirection = Direction::Down;
     }
     else if (pCurrentKeyState[SDL_SCANCODE_LEFT] || pCurrentKeyState[SDL_SCANCODE_A])
     {
-        DoPlayerInputCheck(Direction::Left, playerPreInputRow, playerPreInputCol, Constants::AnimationIndexLeft, -1.5, 0);
+        *pInputDirection = Direction::Left;
     }
     else if (pCurrentKeyState[SDL_SCANCODE_RIGHT] || pCurrentKeyState[SDL_SCANCODE_D])
     {
-        DoPlayerInputCheck(Direction::Right, playerPreInputRow, playerPreInputCol, Constants::AnimationIndexRight, 1.5, 0);
+        *pInputDirection = Direction::Right;
     }
     else if (pCurrentKeyState[SDL_SCANCODE_ESCAPE])
     {
@@ -199,57 +171,10 @@ bool GameHarness::ProcessInput()
     return fResult;
 }
 
-// Given a player's current state (location, direction, animation) check if the player can move in a given direction, and if
-// so position the player on the new track at the new velocity
-void GameHarness::DoPlayerInputCheck(Direction direction, Uint16 row, Uint16 col, Uint16 animationIndex, double dx, double dy)
-{
-    // Helper lambda to check the map in a given direction.  I put it here instead of another helper
-    // because it's only useful here now.  Plus I wanted to check the c++11 feature on both compilers :)
-    auto CanMove = [](Direction direction, Uint16 row, Uint16 col) -> SDL_bool
-    {
-        SDL_bool fResult = SDL_FALSE;
-        // Adjust the [row][col] to look at based on direction
-        if (direction == Direction::Up)
-        {
-            row--;
-        }
-        else if (direction == Direction::Down)
-        {
-            row++;
-        }
-        else if (direction == Direction::Left)
-        {
-            col--;
-        }
-        else if (direction == Direction::Right)
-        {
-            col++;
-        }
-
-        // Check the map, 0s are legal free space
-        if (Constants::CollisionMap[row * Constants::MapCols + col] == 0)
-        {
-            fResult = SDL_TRUE;
-        }
-        return fResult;
-    };
-
-    // If we can move and we're not already moving in the direction
-    if ((CanMove(direction, row, col) == SDL_TRUE) &&
-        (_pPlayerSprite->CurrentAnimation() != animationIndex))
-    {
-        // Set a new animation and position the player with a new velocity
-        _pPlayerSprite->SetAnimation(animationIndex);
-        SDL_Point tilePoint = _pMaze->GetTileCoordinates(row, col);
-        _pPlayerSprite->ResetPosition(tilePoint.x, tilePoint.y);
-        _pPlayerSprite->SetVelocity(dx, dy);
-    }
-}
-
 Uint16 GameHarness::HandlePelletCollision()
 {
     Uint16 ret = 0;
-    SDL_Point playerPoint = { static_cast<int>(_pPlayerSprite->X()), static_cast<int>(_pPlayerSprite->Y()) };
+    SDL_Point playerPoint = { static_cast<int>(_pPlayer->X()), static_cast<int>(_pPlayer->Y()) };
     Uint16 row = 0;
     Uint16 col = 0;
     _pMaze->GetTileRowCol(playerPoint, row, col);
@@ -262,61 +187,6 @@ Uint16 GameHarness::HandlePelletCollision()
     return ret;
 }
 
-// Even if no input is pressed, the player may run into a wall, so we need to handle collisions
-// after the player is moved
-void GameHarness::DoPlayerBoundsCheck()
-{
-    SDL_Point playerPoint = { static_cast<int>(_pPlayerSprite->X()), static_cast<int>(_pPlayerSprite->Y()) };
-
-    // Need to check bounds in direction moving (account for width of half the sprite)
-    // This is because the sprite is double the size of the tiles and placed along the centerline
-    // in the direction of movement.  So 1/2 of its size in a given direction is the "edge" of the
-    // sprite on the screen (minus a pixel or 2 of transparency)
-    if (_pPlayerSprite->DX() != 0) // If we're not moving in this axis, then don't bother
-    {
-        if (_pPlayerSprite->DX() < 0)
-        {
-            playerPoint.x -= (Constants::PlayerSpriteWidth / 2) - Constants::TileWidth / 2;
-        }
-        else
-        {
-            playerPoint.x += (Constants::PlayerSpriteWidth / 2) - Constants::TileWidth / 2;
-        }
-    }
-    else  // We cann't be moving in both directions at once
-    {
-        if (_pPlayerSprite->DY() < 0)  // Same logic for y axis if moving
-        {
-            playerPoint.y -= (Constants::PlayerSpriteHeight / 2) - Constants::TileHeight / 2;
-        }
-        else
-        {
-            playerPoint.y += (Constants::PlayerSpriteHeight / 2) - Constants::TileHeight / 2;
-        }
-    }
-
-    // Now get the row, col we're in
-    Uint16 row = 0;
-    Uint16 col = 0;
-    _pMaze->GetTileRowCol(playerPoint, row, col);
-
-    if (_pMaze->IsTileSolid(row, col))
-    {
-        // If we wandered into a bad cell, stop
-        _pPlayerSprite->SetVelocity(0, 0);
-    }
-}
-
-// Called from normal play so just check the current cell
-bool GameHarness::IsPlayerWarpingOut()
-{
-    SDL_Point playerPoint = { static_cast<int>(_pPlayerSprite->X()), static_cast<int>(_pPlayerSprite->Y()) };
-    Uint16 row, col;
-    _pMaze->GetTileRowCol(playerPoint, row, col);
-    return ((row == 17) && ((col == 0) || (col == 27)));
-}
-
-
 void GameHarness::Render()
 {
     SDL_RenderClear(_pSDLRenderer);
@@ -325,9 +195,14 @@ void GameHarness::Render()
         _pMaze->Render(_pSDLRenderer);
     }
 
-    if (_pPlayerSprite != nullptr)
+    if (_pPlayer != nullptr)
     {
-        _pPlayerSprite->Render(_pSDLRenderer);
+        _pPlayer->Render(_pSDLRenderer);
+    }
+
+    if (_pBlinky != nullptr)
+    {
+        _pBlinky->Render(_pSDLRenderer);
     }
 
     SDL_RenderPresent(_pSDLRenderer);
@@ -391,12 +266,14 @@ GameHarness::GameState GameHarness::OnRunning()
     GameState stateResult = GameState::Running;
 
     // INPUT
-    bool fQuit = ProcessInput();
+    Direction inputDirection = Direction::None;
+    bool fQuit = ProcessInput(&inputDirection);
     if (!fQuit)
     {
         // UPDATE
-        _pPlayerSprite->Update();
-
+        _pPlayer->Update(_pMaze, inputDirection); 
+        _pBlinky->Update(_pPlayer, _pMaze);
+        
         // COLLISIONS
         pelletsEaten += HandlePelletCollision();
         if (pelletsEaten == Constants::TotalPellets)
@@ -404,16 +281,6 @@ GameHarness::GameState GameHarness::OnRunning()
             pelletsEaten = 0;
             return GameState::LevelComplete;
         }
-
-        // BOUNDS CHECK
-        // Warping?
-        if (IsPlayerWarpingOut())
-        {
-            return GameState::PlayerWarpingOut;
-        }
-        
-        // We still need to check if the player has wandered into a wall
-        DoPlayerBoundsCheck();
     }
     else
     {
@@ -454,43 +321,4 @@ GameHarness::GameState GameHarness::OnLevelComplete()
         return GameState::LoadingLevel;
     }
     return GameState::LevelComplete;
-}
-
-// Assume control of the player sprite while warping in.  Control is returned to 
-// the player once we're 1 col "in"
-GameHarness::GameState GameHarness::OnPlayerWarpingIn()
-{
-    // Maintain current velocity until we're back in frame
-    _pPlayerSprite->Update();
-
-    SDL_Point playerPoint = { static_cast<int>(_pPlayerSprite->X()), static_cast<int>(_pPlayerSprite->Y()) };
-    Uint16 row, col;
-    _pMaze->GetTileRowCol(playerPoint, row, col);
-    if ((row == Constants::WarpRow) && ((col == 1) || (col == Constants::MapCols - 2)))
-    {
-        _state = GameState::Running;
-    }
-    
-    return _state;
-}
-
-// Assume control of the player while warping out.  Once the sprite is off the visible
-// screen, we reposition it on the other side of the map and transition to "WarpingIn"
-GameHarness::GameState GameHarness::OnPlayerWarpingOut()
-{
-    // Maintain current velocity until we're out of frame
-    _pPlayerSprite->Update();
-    
-    SDL_Rect mapRect = _pMaze->GetMapBounds();
-    if (_pPlayerSprite->X() > mapRect.x + mapRect.w + Constants::PlayerSpriteWidth)
-    {
-        _pPlayerSprite->ResetPosition(mapRect.x - Constants::PlayerSpriteWidth, _pPlayerSprite->Y());
-        _state = GameState::PlayerWarpingIn;
-    }
-    else if (_pPlayerSprite->X() < mapRect.x - Constants::PlayerSpriteWidth)
-    {
-        _pPlayerSprite->ResetPosition(mapRect.x + mapRect.w + Constants::PlayerSpriteWidth, _pPlayerSprite->Y());
-        _state = GameState::PlayerWarpingIn;
-    }
-    return _state;
 }

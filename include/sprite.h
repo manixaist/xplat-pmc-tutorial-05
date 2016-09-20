@@ -20,7 +20,7 @@ namespace PacManClone
         // cFramesTotal - total frames to load
         // cAnimationsTotal - total number of animation sequences needed
         Sprite(TextureWrapper *pTextureWrapper, Uint16 cxFrame, Uint16 cyFrame, Uint16 cFramesTotal, Uint16 cAnimationsTotal);
-        ~Sprite();
+        virtual ~Sprite();
 
         // All frames are the same size once created above (cxFrame * cyFrame)
         // index - frame index to assign the image to 
@@ -60,9 +60,14 @@ namespace PacManClone
         double Y() { return _y; }
         double DX() { return _dx; }
         double DY() { return _dy; }
-        Uint16 CurrentAnimation() { return _currentAnimationIndex; }
+        Uint16 Width() { return _cxFrame; }
+        Uint16 Height() { return _cyFrame; }
 
-    private:
+        Uint16 CurrentAnimation() { return _currentAnimationIndex; }
+        Direction CurrentDirection();
+        bool IsOutOfView(SDL_Rect &rect);
+
+    protected:
         double _x;                              // Position
         double _y;
         double _dx;                             // Velocity

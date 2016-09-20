@@ -10,6 +10,9 @@ namespace PacManClone
     const SDL_Color Constants::RenderDrawColor = Constants::SDLColorGrey;   // sets background when renderer cleared
     const char * const Constants::WindowTitle = "Pac-Man Clone";
 
+    const double Constants::PlayerMaxSpeed = 2.0;
+    const double Constants::GhostBaseSpeed = 1.0;
+
     // This is the map data for the tiles, each index represents a different tile to render
     Uint16 Constants::MapIndicies[MapRows * MapCols] =
     {
@@ -54,8 +57,8 @@ namespace PacManClone
     // Like the tilemap, this represents the playing area, but 1s are illegal space and 0s are legal free space
     // for the player.  The player sprite should be confined to these cells
     Uint16 Constants::CollisionMap[MapRows * MapCols] =
-    {
-        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    { //          5       910    13
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,  //00
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -65,17 +68,17 @@ namespace PacManClone
         1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1,
         1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
         1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1,
-        1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1,
+        1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1,  //10
         1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,
         1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,
         1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,
-        1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,
+        1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,  //14
+        1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,
+        1,1,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,1,1,
+        0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,
         1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,
         1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,
-        0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,
-        1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,
-        1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,
-        1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,
+        1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,  //20
         1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,
         1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,
         1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,
@@ -99,6 +102,12 @@ namespace PacManClone
     int Constants::PlayerAnimation_LEFT[PlayerAnimationFrameCount] = { 0, 7, 8, 7 };
     int Constants::PlayerAnimation_RIGHT[PlayerAnimationFrameCount] = { 0, 3, 4, 3 };
     int Constants::PlayerAnimation_DEATH[PlayerAnimationDeathFrameCount] = { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 9 };
+
+
+    int Constants::GhostAnimation_UP[GhostMovingAnimationFrameCount] = { 0, 1 };
+    int Constants::GhostAnimation_DOWN[GhostMovingAnimationFrameCount] = { 2, 3 };
+    int Constants::GhostAnimation_LEFT[GhostMovingAnimationFrameCount] = { 4, 5 };
+    int Constants::GhostAnimation_RIGHT[GhostMovingAnimationFrameCount] = { 6, 7 };
 
     const char * const Constants::TilesImage = "./grfx/tiles.png";
     const char * const Constants::SpritesImage = "./grfx/spritesheet.png";

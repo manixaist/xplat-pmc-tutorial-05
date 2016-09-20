@@ -24,12 +24,24 @@ namespace PacManClone
         static const Uint16 TileHeight = 16;
         static const Uint16 PlayerSpriteWidth = 32;
         static const Uint16 PlayerSpriteHeight = 32;
+        static const Uint16 GhostSpriteWidth = 32;
+        static const Uint16 GhostSpriteHeight = 32;
         static const Uint16 PlayerStartRow = 26;
         static const Uint16 PlayerStartCol = 13;
         static const Uint16 TotalPellets = 244;
         static const Uint32 LevelLoadDelay = 3000;
         static const Uint32 LevelCompleteDelay = 6000;
         static const Uint16 WarpRow = 17;
+        static const Uint16 WarpColPlayerLeft = 0;
+        static const Uint16 WarpColPlayerRight = 27;
+        static const Uint16 WarpColGhostLeft = 1;
+        static const Uint16 WarpColGhostRight = 26;
+        static const Uint16 GhostPenRowExit = 14;
+        static const Uint16 GhostPenRow = 17;
+        static const Uint16 GhostPenCol = 13;
+
+        static const double PlayerMaxSpeed;
+        static const double GhostBaseSpeed;
 
         // Indices to tiles that make up the map - for your own sanity use a level editor (several free ones exist) or better
         // yet develop your own tool early in the design process
@@ -38,6 +50,7 @@ namespace PacManClone
         static Uint16 CollisionMap[MapRows * MapCols];
 
         static const Uint16 PlayerAnimationSpeed = 5;
+        static const Uint16 GhostAnimationSpeed = 8;
 
         // Animations
         static const Uint16 AnimationIndexUp = 0;
@@ -55,6 +68,14 @@ namespace PacManClone
         static int PlayerAnimation_LEFT[PlayerAnimationFrameCount];
         static int PlayerAnimation_RIGHT[PlayerAnimationFrameCount];
         static int PlayerAnimation_DEATH[PlayerAnimationDeathFrameCount];
+
+        static const Uint16 GhostTotalFrameCount = 8;
+        static const Uint16 GhostTotalAnimationCount = 4;
+        static const Uint16 GhostMovingAnimationFrameCount = 2;
+        static int GhostAnimation_UP[GhostMovingAnimationFrameCount];
+        static int GhostAnimation_DOWN[GhostMovingAnimationFrameCount];
+        static int GhostAnimation_LEFT[GhostMovingAnimationFrameCount];
+        static int GhostAnimation_RIGHT[GhostMovingAnimationFrameCount];
 
         // Strings
         static const char * const TilesImage;

@@ -203,3 +203,40 @@ void Sprite::Render(SDL_Renderer *pSDLRenderer)
             &targetRect);
     }
 }
+
+Direction Sprite::CurrentDirection()
+{
+    Direction result = Direction::None;
+
+    if (_dx > 0)
+    {
+        result = Direction::Right;
+    }
+    else if (_dx < 0)
+    {
+        result = Direction::Left;
+    }
+    else if (_dy > 0)
+    {
+        result = Direction::Down;
+    }
+    else if (_dy < 0)
+    {
+        result = Direction::Up;
+    }
+    return result;
+}
+
+bool Sprite::IsOutOfView(SDL_Rect &rect)
+{
+    bool result = false;
+    if (X() > rect.x + rect.w + Width())
+    {
+        result = true;
+    }
+    else if (X() < rect.x - Width())
+    {
+        result = true;
+    }
+    return result;
+}

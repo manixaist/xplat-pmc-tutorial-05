@@ -165,17 +165,23 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\blinky.cpp" />
     <ClCompile Include="..\constants.cpp" />
     <ClCompile Include="..\gameharness.cpp" />
+    <ClCompile Include="..\ghost.cpp" />
     <ClCompile Include="..\main.cpp" />
+    <ClCompile Include="..\player.cpp" />
     <ClCompile Include="..\sprite.cpp" />
     <ClCompile Include="..\tiledmap.cpp" />
     <ClCompile Include="..\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\blinky.h" />
     <ClInclude Include="..\include\constants.h" />
     <ClInclude Include="..\include\gameharness.h" />
+    <ClInclude Include="..\include\ghost.h" />
     <ClInclude Include="..\include\maze.h" />
+    <ClInclude Include="..\include\player.h" />
     <ClInclude Include="..\include\sprite.h" />
     <ClInclude Include="..\include\spriteanimation.h" />
     <ClInclude Include="..\include\tiledmap.h" />

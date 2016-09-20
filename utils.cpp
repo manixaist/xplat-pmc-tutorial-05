@@ -7,6 +7,34 @@ namespace XplatGameTutorial
 {
 namespace PacManClone
 {
+    // Returns the opposite direction passed in.
+    Direction Opposite(Direction dir)
+    {
+        SDL_assert(dir != Direction::None);
+        Direction opposites[] = { Direction::Down, Direction::Up, Direction::Right, Direction::Left };
+        return opposites[static_cast<int>(dir)];
+    }
+
+    // Shifts a cell in a direction, does not care about bounds or "solidness"
+    void TranslateCell(Uint16 &row, Uint16 &col, Direction direction)
+    {
+        switch (direction)
+        {
+        case Direction::Up:
+            row--;
+            break;
+        case Direction::Down:
+            row++;
+            break;
+        case Direction::Left:
+            col--;
+            break;
+        case Direction::Right:
+            col++;
+            break;
+        }
+    }
+
     // Fairly basic SDL code of which there are many examples.  This loads an image from disk to a surface, then
     // if a colorKey is provided, sets the transparency, then we create a texture from the surface that is compatible
     // and finally we're done
