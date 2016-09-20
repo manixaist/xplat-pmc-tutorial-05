@@ -72,10 +72,10 @@ Direction Blinky::MakeBranchDecision(Uint16 nRow, Uint16 nCol, Player* pPlayer, 
     
     // Direction order should match the Direction Enum for easy array access
     MAZECELL options[] = { 
-        { nRow - 1, nCol, 0, false }, // UP
-        { nRow + 1, nCol, 0, false }, // DOWN
-        { nRow, nCol - 1, 0, false }, // LEFT
-        { nRow, nCol + 1, 0, false }  // RIGHT
+        { static_cast<Uint16>(nRow - 1), nCol, 0, false }, // UP
+        { static_cast<Uint16>(nRow + 1), nCol, 0, false }, // DOWN
+        { nRow, static_cast<Uint16>(nCol - 1), 0, false }, // LEFT
+        { nRow, static_cast<Uint16>(nCol + 1), 0, false }  // RIGHT
     };
 
     for (size_t index = 0; index < SDL_arraysize(options); index++)

@@ -3,9 +3,9 @@
 using namespace XplatGameTutorial::PacManClone;
 
 Player::Player(TextureWrapper *pTextureWrapper) :
-    _mode(Mode::Normal),
     Sprite(pTextureWrapper, Constants::PlayerSpriteWidth, Constants::PlayerSpriteHeight,
-        Constants::PlayerTotalFrameCount, Constants::PlayerTotalAnimationCount)
+        Constants::PlayerTotalFrameCount, Constants::PlayerTotalAnimationCount),
+    _mode(Mode::Normal)   
 {
 }
 
@@ -44,6 +44,8 @@ void Player::Update(Maze* pMaze, Direction inputDirection)
     switch (_mode)
     {
     case Mode::Normal:
+    {
+
         if (IsWarpingOut(pMaze))
         {
             // If we've reached a warp tile, stop taking input and let the warp
@@ -57,7 +59,10 @@ void Player::Update(Maze* pMaze, Direction inputDirection)
             DoBoundsCheck(pMaze);
         }
         break;
+    }
     case Mode::WarpingOut:
+    {
+
         // Just keep moving until out of view...
         SDL_Rect mapRect = pMaze->GetMapBounds();
         if (IsOutOfView(mapRect))
@@ -75,8 +80,10 @@ void Player::Update(Maze* pMaze, Direction inputDirection)
             }
         }
         break;
+    }
     case Mode::WarpingIn:
-        // Just keep moving until back in view...
+    {
+            // Just keep moving until back in view...
         SDL_Point playerPoint = { static_cast<int>(X()), static_cast<int>(Y()) };
         Uint16 row, col;
         pMaze->GetTileRowCol(playerPoint, row, col);
@@ -86,6 +93,7 @@ void Player::Update(Maze* pMaze, Direction inputDirection)
             _mode = Mode::Normal;
         }
         break;
+    }
     }
 }
 
@@ -160,6 +168,8 @@ void Player::ProcessPlayerInput(Maze* pMaze, Direction direction)
         case Direction::Right:
             SetVelocity(Constants::PlayerMaxSpeed * .75, 0);
             SetAnimation(Constants::AnimationIndexRight);
+            break;
+        case Direction::None:
             break;
         }
     }

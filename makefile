@@ -10,6 +10,9 @@ OBJS := \
 	gameharness.o	\
 	tiledmap.o 	\
 	sprite.o 	\
+	ghost.o		\
+	player.o	\
+	blinky.o	\
 	utils.o 	\
 	constants.o
 

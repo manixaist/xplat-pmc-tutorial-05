@@ -85,6 +85,9 @@ namespace PacManClone
                 nextCol = col + 1;
                 nextRow = row;
                 break;
+            case Direction::None:
+                nextCol = col;
+                nextRow = row;
             }
             // No promises on whether this is solid, etc
         }
@@ -96,7 +99,6 @@ namespace PacManClone
 
         SDL_bool IsSpritePastCenter(Uint16 row, Uint16 col, Sprite* pSprite)
         {
-            SDL_Point spritePoint = { static_cast<int>(pSprite->X()), static_cast<int>(pSprite->Y()) };
             SDL_bool result = SDL_FALSE;
 
             // This returns the center pixel which is useful here

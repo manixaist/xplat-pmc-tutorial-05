@@ -32,6 +32,8 @@ namespace PacManClone
         case Direction::Right:
             col++;
             break;
+        case Direction::None:
+            break;
         }
     }
 

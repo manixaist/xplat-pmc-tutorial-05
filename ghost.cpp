@@ -4,12 +4,12 @@
 using namespace XplatGameTutorial::PacManClone;
 
 Ghost::Ghost(TextureWrapper *pTextureWrapper, Uint16 cxFrame, Uint16 cyFrame, Uint16 cFramesTotal, Uint16 cAnimationsTotal) :
+    Sprite(pTextureWrapper, Constants::GhostSpriteWidth, Constants::GhostSpriteHeight, Constants::GhostTotalFrameCount, Constants::GhostTotalAnimationCount),
     _currentRow(0),
     _currentCol(0),
     _mode(Mode::Chase),
     _pNextDecision(nullptr),
-    _pCurrentDecision(nullptr),
-    Sprite(pTextureWrapper, Constants::GhostSpriteWidth, Constants::GhostSpriteHeight, Constants::GhostTotalFrameCount, Constants::GhostTotalAnimationCount)
+    _pCurrentDecision(nullptr) 
 {
 }
 
@@ -30,6 +30,9 @@ void Ghost::Update(Player* pPlayer, Maze* pMaze)
     case Mode::Chase:
         OnChasing(pPlayer, pMaze);
         break;
+    case Mode::Scatter:
+        // Not implemented
+        break;
     }
 }
 
@@ -47,12 +50,12 @@ Direction Ghost::GetNextDirection(Uint16 r, Uint16 c, Maze *pMaze)
     };
 
     // This option is automatically invalid
-    int oppositeOption = static_cast<int>(Opposite(_pCurrentDecision->GetDirection()));
-    SDL_assert(oppositeOption != static_cast<int>(Direction::None));
+    size_t oppositeOption = static_cast<size_t>(Opposite(_pCurrentDecision->GetDirection()));
+    SDL_assert(oppositeOption != static_cast<size_t>(Direction::None));
 
     // Now there are 3 options left
     // Only one of them should be free
-    for (int index = 0; index < SDL_arraysize(options); index++)
+    for (size_t index = 0; index < SDL_arraysize(options); index++)
     {
         if (index != oppositeOption)
         {
@@ -202,7 +205,6 @@ void Ghost::OnChasing(Player* pPlayer, Maze* pMaze)
         else if (_penTimer.IsDone())
         {
             // Place below pen and move upward to outer row
-            Uint16 row, col;
             SDL_Point exitPoint = pMaze->GetTileCoordinates(17, 13);
             ResetPosition(exitPoint.x, exitPoint.y);
             SetAnimation(Constants::AnimationIndexUp);
@@ -287,6 +289,8 @@ void Ghost::UpdateAnimation(Direction direction)
     case Direction::Right:
         SetVelocity(Constants::GhostBaseSpeed * 1.75, 0);
         SetAnimation(Constants::AnimationIndexRight);
+        break;
+    case Direction::None:
         break;
     }
 }
